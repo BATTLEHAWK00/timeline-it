@@ -8,6 +8,8 @@ import SetIntervalAdaptor from "./adaptor/setIntervalAdaptor";
 import AnimationFrameTickAdaptor from "./adaptor/animationFrameAdaptor";
 import SetImmediateAdaptor from "./adaptor/setImmediateAdaptor";
 import SetTimeoutAdaptor from "./adaptor/setTimeoutAdaptor";
+import NextTickAdaptor from "./adaptor/nextTickAdaptor";
+
 type TimeUnit = "ms" | "s" | "m" | "h" | "d";
 type TaskCallback = () => unknown | Promise<unknown>;
 
@@ -20,6 +22,7 @@ const adaptorNameMap = {
     animationFrame: AnimationFrameTickAdaptor,
     setImmediate: SetImmediateAdaptor,
     setTimeout: SetTimeoutAdaptor,
+    nextTick: NextTickAdaptor,
 } as const;
 
 type AdaptorName = keyof typeof adaptorNameMap;
