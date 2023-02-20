@@ -1,7 +1,7 @@
 import { TimelineItTickAdaptor } from "../adaptor";
 
-class CommonTickAdaptor extends TimelineItTickAdaptor {
-    private interval?: number;
+class SetIntervalAdaptor extends TimelineItTickAdaptor {
+    private interval?: number | NodeJS.Timer;
     private startTime: number = 0;
     startTick() {
         this.startTime = performance.now();
@@ -17,4 +17,4 @@ class CommonTickAdaptor extends TimelineItTickAdaptor {
         this.startTime = 0;
     }
 }
-export default CommonTickAdaptor;
+export default SetIntervalAdaptor;

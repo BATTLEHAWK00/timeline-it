@@ -4,9 +4,10 @@ import {
     PriorityQueue,
 } from "@datastructures-js/priority-queue";
 import { TimelineItTickAdaptor } from "./adaptor";
-import CommonTickAdaptor from "./adaptor/common";
-import AnimationFrameTickAdaptor from "./adaptor/animationFrame";
-
+import SetIntervalAdaptor from "./adaptor/setIntervalAdaptor";
+import AnimationFrameTickAdaptor from "./adaptor/animationFrameAdaptor";
+import SetImmediateAdaptor from "./adaptor/setImmediateAdaptor";
+import SetTimeoutAdaptor from "./adaptor/setTimeoutAdaptor";
 type TimeUnit = "ms" | "s" | "m" | "h" | "d";
 type TaskCallback = () => unknown | Promise<unknown>;
 
@@ -15,8 +16,10 @@ interface TaskOptions {
 }
 
 const adaptorNameMap = {
-    common: CommonTickAdaptor,
+    setInterval: SetIntervalAdaptor,
     animationFrame: AnimationFrameTickAdaptor,
+    setImmediate: SetImmediateAdaptor,
+    setTimeout: SetTimeoutAdaptor,
 } as const;
 
 type AdaptorName = keyof typeof adaptorNameMap;
@@ -63,7 +66,8 @@ class TimelineIt extends EventEmitter implements ITimelineIt {
 
     constructor(options: TimelineItOptions) {
         super();
-        const AdaptorConstructor = adaptorNameMap[options?.adaptor ?? "common"];
+        const AdaptorConstructor =
+            adaptorNameMap[options?.adaptor ?? "setTimeout"];
         this.adaptor = new AdaptorConstructor(this.onTick.bind(this));
     }
 
