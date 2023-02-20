@@ -3,12 +3,26 @@ import {
     MinPriorityQueue,
     PriorityQueue,
 } from "@datastructures-js/priority-queue";
+import { TimelineItTickAdaptor } from "./adaptor";
+import CommonTickAdaptor from "./adaptor/common";
+import AnimationFrameTickAdaptor from "./adaptor/animationFrame";
 
 type TimeUnit = "ms" | "s" | "m" | "h" | "d";
 type TaskCallback = () => unknown | Promise<unknown>;
 
 interface TaskOptions {
     name?: string;
+}
+
+const adaptorNameMap = {
+    common: CommonTickAdaptor,
+    animationFrame: AnimationFrameTickAdaptor,
+} as const;
+
+type AdaptorName = keyof typeof adaptorNameMap;
+
+interface TimelineItOptions {
+    adaptor?: AdaptorName;
 }
 
 interface ITimelineIt {
@@ -42,7 +56,33 @@ class Task {
 }
 
 class TimelineIt extends EventEmitter implements ITimelineIt {
-    private taskList = new MinPriorityQueue<Task>((task) => task.timeMS);
+    private readonly taskList = new MinPriorityQueue<Task>(
+        (task) => task.timeMS
+    );
+    private readonly adaptor: TimelineItTickAdaptor;
+
+    constructor(options: TimelineItOptions) {
+        super();
+        const AdaptorConstructor = adaptorNameMap[options?.adaptor ?? "common"];
+        this.adaptor = new AdaptorConstructor(this.onTick.bind(this));
+    }
+
+    private onTick(time: number) {
+        this.emit("tick", {
+            time,
+            percentage: Math.min(time / this.taskList.back().timeMS, 1),
+        });
+        while (
+            !this.taskList.isEmpty() &&
+            time >= this.taskList.front().timeMS
+        ) {
+            this.taskList.pop().callback();
+        }
+        if (this.taskList.isEmpty()) {
+            this.adaptor.pauseTick();
+            this.emit("timelineEnd");
+        }
+    }
 
     at(
         callback: TaskCallback,
@@ -70,16 +110,16 @@ class TimelineIt extends EventEmitter implements ITimelineIt {
         return this;
     }
     async start() {
-        const timeoutSet = new Set<number>();
-        const promiseList = this.taskList.toArray().map(async (task, index) => {
-            const timeout = setTimeout(async () => {
-                await task.callback();
-                timeoutSet.delete(timeout);
-            }, task.timeMS);
-            timeoutSet.add(timeout);
-        });
-        await Promise.all(promiseList);
+        this.emit("timelineStart");
+        this.adaptor.reset();
+        this.adaptor.startTick();
+        return new Promise<void>((resolve) =>
+            this.once("timelineEnd", resolve)
+        );
     }
-    async pause() {}
+    async pause() {
+        this.emit("paused", this.adaptor);
+        this.adaptor.pauseTick();
+    }
 }
-export default () => new TimelineIt();
+export default (options: TimelineItOptions) => new TimelineIt(options);

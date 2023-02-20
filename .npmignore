@@ -1,0 +1,4 @@
+src/
+.editorconfig
+index.ts
+tsconfig.json
